@@ -4,7 +4,7 @@ import type { Pose, Weather } from './types';
 export const DAILY_ISSUES = ['没精神', '少吃', '不吃', '便便偏软', '腹泻', '呕吐', '喝水变多', '其他'];
 /** 计分为可配置的演示默认值：满分 100，按例外扣分 */
 export const ISSUE_WEIGHT: Record<string, number> = {
-  没精神: 25, 少吃: 25, 不吃: 45, 便便偏软: 15, 腹泻: 30, 没拉: 15, 呕吐: 30, 喝水变多: 15, 喝水变少: 15, 打喷嚏: 10, 抓挠: 10, 其他: 10,
+  没精神: 25, 少吃: 20, 不吃: 45, 便便偏软: 10, 腹泻: 30, 没拉: 15, 呕吐: 25, 喝水变多: 15, 喝水变少: 15, 打喷嚏: 10, 抓挠: 10, 其他: 10,
 };
 export const PENALTY = { overdue: 10, weightAnomaly: 15 };
 

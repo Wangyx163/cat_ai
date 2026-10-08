@@ -1,3 +1,5 @@
+@font-face { font-family: 'ZCOOL KuaiLe'; src: url('../assets/fonts/zcool-kuaile-subset.woff2') format('woff2'); font-display: swap; }
+
 /* ===== 设计变量：色板从生成插画取色校准（见画布「UI 规范」） ===== */
 :root {
   --ink: #082C5C; --ink-2: #5A6782; --line: #E3E8F0; --white: #fff; --muted: #EEF2F8;
@@ -263,3 +265,59 @@ textarea { resize: vertical; }
 .pick-card--on { border-color: var(--sky-d); background: var(--sky-t); }
 
 :focus-visible { outline: 3px solid var(--sky-d); outline-offset: 2px; }
+
+/* ===== 顶部 Tab：选中加粗放大 + 藏青短线 ===== */
+.ttabs { display: flex; align-items: flex-end; gap: 24px; padding: 0 4px; border-bottom: 1px solid #F1E4D2; }
+.ttab { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 6px 2px 0; border: none; background: transparent;
+  font-size: 16px; line-height: 24px; color: var(--ink-2); cursor: pointer; }
+.ttab::after { content: ''; width: 18px; height: 4px; border-radius: 999px; background: transparent; }
+.ttab--on { font-size: 19px; font-weight: 800; color: var(--ink); }
+.ttab--on::after { background: var(--ink); }
+
+/* ===== 圈子：图标入口 + 求助置顶 + 双列瀑布流 ===== */
+.kk-row { display: flex; justify-content: space-between; padding: 4px 6px; }
+.kk { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 72px; text-decoration: none; color: var(--ink); font-size: 13px; font-weight: 600; }
+.kk__pic { display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 20px; background: var(--white); box-shadow: var(--shadow); }
+.kk__pic img { max-width: 50px; max-height: 44px; width: auto; height: auto; }
+.kk .badge { top: -4px; right: 2px; }
+.urgent { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 16px; background: var(--coral-t); font-size: 14px; }
+.masonry { display: flex; gap: 12px; align-items: flex-start; }
+.masonry__col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.fcard { border-radius: 16px; background: var(--white); box-shadow: var(--shadow); overflow: hidden; }
+.fcard__cover, .fcard__pet { position: relative; }
+.fcard__cover img { width: 100%; object-fit: cover; }
+.fcard__pet { display: flex; align-items: flex-end; justify-content: center; height: 170px; }
+.fcard__pet img { width: 70%; margin-bottom: 10px; }
+.fcard__pet--amber { background: var(--amber-t); } .fcard__pet--sky { background: var(--sky-t); } .fcard__pet--green { background: var(--green-t); } .fcard__pet--orange { background: var(--orange-t); }
+.fcard__src { position: absolute; left: 8px; top: 8px; }
+.fcard__body { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 12px; }
+.fcard__title { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.45; }
+.fcard__meta { gap: 6px; }
+.fcard__meta small { font-size: 12px; color: var(--ink-2); }
+.fish-btn { display: inline-flex; align-items: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 2px; border: none; background: transparent; cursor: pointer; font-size: 12px; color: var(--ink-2); }
+.fish-btn--on { color: var(--ink); font-weight: 700; }
+.tag--white { background: rgba(255, 255, 255, .92); }
+
+/* ===== 物件挂牌：和插画同一套语言，有事才变色说话 ===== */
+.scene__obj .plate { display: inline-block; margin-top: 3px; padding: 1px 8px; border-radius: 9px; border: 1.5px solid var(--ink); background: var(--cream);
+  font-family: var(--display); font-size: 13px; line-height: 18px; color: var(--ink); white-space: nowrap; }
+.plate--sky { background: var(--sky-s) !important; } .plate--amber { background: var(--amber) !important; } .plate--coral { background: var(--coral) !important; }
+.scene__obj .door-sign { position: absolute; left: 50%; top: 14%; transform: translateX(-50%) rotate(-2deg); padding: 0 6px; border-radius: 7px; border: 1.5px solid var(--ink);
+  background: var(--cream); font-family: var(--display); font-size: 12px; line-height: 16px; white-space: nowrap; }
+
+/* ===== 遛狗局 ===== */
+.walk-hero { position: relative; height: 168px; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+.walk-hero img { width: 100%; height: 100%; object-fit: cover; }
+.walk-hero span { position: absolute; left: 12px; bottom: 12px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, .94); font-size: 14px; font-weight: 700; }
+.timebox { display: flex; flex-direction: column; width: 58px; flex: none; padding: 8px 0; border-radius: 14px; background: var(--sky-t); text-align: center; }
+.card--sky .timebox { background: var(--white); }
+.timebox small { font-size: 12px; color: var(--ink-2); } .timebox b { font-size: 18px; }
+.event__top { align-items: flex-start; }
+.event__top small { display: block; }
+.dogs { display: flex; }
+.dogs .avatar { box-shadow: 0 0 0 2px var(--white); }
+.dogs .avatar + .avatar { margin-left: -8px; }
+.cap { width: 48px; text-align: center; font-size: 22px; }
+
+/* ===== 宠物详情的状态摘要卡 ===== */
+.status-card { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 18px; background: var(--white); box-shadow: var(--shadow); color: var(--ink); text-decoration: none; font-size: 14px; }

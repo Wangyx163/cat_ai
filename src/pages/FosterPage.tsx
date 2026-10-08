@@ -14,7 +14,7 @@ export default function FosterPage() {
   const [from, setFrom] = useState(addDays(today, 3));
   const [to, setTo] = useState(addDays(today, 5));
   const [services, setServices] = useState<string[]>(['喂食', '换水', '铲屎']);
-  const helper = state.candidates.find((c) => state.friends.includes(c.id))?.owner;
+  const helper = state.friends[0];
   return (
     <div className="page">
       <TopBar title="临时托付" back="/circle" />

@@ -8,9 +8,11 @@ export const RATIO: Record<string, number> = {
   pet_zhima_happy: 585 / 623, pet_zhima_calm: 523 / 631, pet_zhima_unwell: 700 / 365,
   pet_doubao_happy: 616 / 622, pet_doubao_calm: 532 / 615, pet_doubao_unwell: 700 / 389,
   pet_kele_happy: 594 / 700, obj_scale: 358 / 259, obj_medkit: 314 / 327, obj_calendar: 272 / 340,
-  obj_door: 286 / 355, obj_frame: 285 / 381, icon_fish: 256 / 116, icon_bone: 256 / 128,
+  obj_door: 286 / 355, obj_frame: 285 / 381, icon_fish: 256 / 88, icon_bone: 256 / 128,
   body_cat: 900 / 679, body_dog: 900 / 644, card_milestone: 814 / 1086, card_monthly: 814 / 1086,
-  empty_nearby: 640 / 475, empty_timeline: 504 / 640, scene_room: 1448 / 1086,
+  empty_nearby: 640 / 475, empty_timeline: 502 / 640, scene_room: 1448 / 1086,
+  entry_walk: 360 / 215, entry_visit: 360 / 303, entry_lost: 358 / 360, entry_foster: 360 / 274,
+  feed_cat_window: 600 / 800, walk_party: 1200 / 675,
 };
 
 export function petImage(look: Look, pose: Pose) {

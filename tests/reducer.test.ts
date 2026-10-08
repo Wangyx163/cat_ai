@@ -77,15 +77,18 @@ describe('就诊回填闭环', () => {
 });
 
 describe('圈子闭环', () => {
-  it('约遛：嗅一嗅 → 邀约 → 见面打卡 → 评价成为宠友；不合适则不再推荐', () => {
-    let s = run(seed(T), { type: 'walk/sniff', id: 'c_kele' }, { type: 'walk/schedule', candidateId: 'c_kele', slot: '周三 19:30', place: '滨河公园东门草坪' });
-    const ap = s.appointments.find((a) => a.candidateId === 'c_kele')!;
-    s = run(s, { type: 'walk/met', apptId: ap.id, date: T }, { type: 'walk/rate', apptId: ap.id, rating: 'great' });
-    expect(s.friends).toContain('c_kele');
-    expect(s.events[0]).toMatchObject({ type: 'walk', title: '和可乐一起遛弯' });
-    const bad = run(seed(T), { type: 'walk/schedule', candidateId: 'c_mantou', slot: '周六 9:00', place: 'x' });
-    const ap2 = bad.appointments[0];
-    expect(run(bad, { type: 'walk/rate', apptId: ap2.id, rating: 'bad' }).blocked).toContain('c_mantou');
+  it('遛狗局：加入 → 到场打卡 → 评价成为宠友；不合适则不再推荐这位发起人；也可以自己组局', () => {
+    let s = run(seed(T), { type: 'walk/join', id: 'we_2' });
+    expect(s.walkEvents.find((e) => e.id === 'we_2')?.joined).toBe(true);
+    s = run(s, { type: 'walk/checkin', id: 'we_2', date: T }, { type: 'walk/rate', id: 'we_2', rating: 'great' });
+    expect(s.friends).toContain('馒头爸');
+    expect(s.events[0]).toMatchObject({ type: 'walk', title: '参加遛狗局：滨河公园东门草坪（3 只狗）' });
+    let b = run(seed(T), { type: 'walk/join', id: 'we_3' }, { type: 'walk/checkin', id: 'we_3', date: T }, { type: 'walk/rate', id: 'we_3', rating: 'bad' });
+    expect(b.hiddenHosts).toContain('可乐妈');
+    expect(b.friends).not.toContain('可乐妈');
+    b = run(b, { type: 'walk/host', event: { when: '周六 9:00', slot: '周末上午', place: '滨河公园东门草坪', sizes: ['S', 'M'], vibe: '新手友好', capacity: 6 } });
+    expect(b.walkEvents[0]).toMatchObject({ mine: true, joined: true, host: '阿柚', dogs: [] });
+    expect(run(b, { type: 'walk/leave', id: b.walkEvents[0].id })).toBe(b);
   });
   it('走失：线索 +5 并获得守护者徽章；自己的求助可扩大范围、找回后下架', () => {
     const s0 = seed(T);

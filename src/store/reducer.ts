@@ -3,7 +3,7 @@ import { completePlan, completionReward, REWARD } from '../domain/shield';
 import { petWeights } from '../domain/summary';
 import { LEVEL_TEXT } from '../domain/triage';
 import { inRange, weightTrend } from '../domain/weight';
-import type { Appointment, CheckSession, DailyEntry, Foster, Layer, Pet, PetEvent, Plan, Post, Settings, State, Visibility, WalkProfile } from '../domain/types';
+import type { CheckSession, DailyEntry, Foster, Layer, Pet, PetEvent, Plan, Post, Settings, State, Visibility, WalkEvent, WalkProfile } from '../domain/types';
 import { leadOf } from './selectors';
 
 export const LIMITS = { likesPerDay: 20, visitFishPerHomePerDay: 3 };
@@ -30,11 +30,11 @@ export type Action =
   | { type: 'lost/sighting'; alertId: string; note: string }
   | { type: 'lost/expand'; alertId: string }
   | { type: 'lost/resolve'; alertId: string; date: ISODate }
-  | { type: 'walk/skip'; id: string }
-  | { type: 'walk/sniff'; id: string }
-  | { type: 'walk/schedule'; candidateId: string; slot: string; place: string }
-  | { type: 'walk/met'; apptId: string; date: ISODate }
-  | { type: 'walk/rate'; apptId: string; rating: 'great' | 'ok' | 'bad' }
+  | { type: 'walk/join'; id: string }
+  | { type: 'walk/leave'; id: string }
+  | { type: 'walk/host'; event: Pick<WalkEvent, 'when' | 'slot' | 'place' | 'sizes' | 'vibe' | 'capacity'> }
+  | { type: 'walk/checkin'; id: string; date: ISODate }
+  | { type: 'walk/rate'; id: string; rating: 'great' | 'ok' | 'bad' }
   | { type: 'walk/profile'; profile: WalkProfile }
   | { type: 'home/fish'; homeId: string; date: ISODate }
   | { type: 'foster/create'; foster: Omit<Foster, 'id' | 'status' | 'checkins'> }
@@ -192,36 +192,41 @@ export function reducer(s: State, a: Action): State {
       return { ...s, lost: s.lost.map((x) => (x.id === l.id ? { ...x, resolved: true } : x)), pets: s.pets.map((p) => (p.id === l.petId ? { ...p, lost: false } : p)), events, toast: '已找回，寻宠卡已下架' };
     }
 
-    case 'walk/skip':
-      return { ...s, skipped: [...s.skipped, a.id] };
-
-    case 'walk/sniff': {
-      const c = s.candidates.find((x) => x.id === a.id);
-      if (!c || s.sniffed.includes(a.id)) return s;
-      return { ...s, sniffed: [...s.sniffed, a.id], toast: c.likesYou ? `和${c.name}互相嗅了嗅，匹配成功` : `已嗅一嗅，等${c.name}回应` };
+    case 'walk/join': {
+      const e = s.walkEvents.find((x) => x.id === a.id);
+      if (!e || e.joined || e.dogs.length >= e.capacity) return s;
+      return { ...s, walkEvents: s.walkEvents.map((x) => (x.id === e.id ? { ...x, joined: true } : x)), toast: `已加入「${e.when}」的局，开始前 1 小时提醒你` };
     }
 
-    case 'walk/schedule': {
-      const appt: Appointment = { id: uid('ap'), candidateId: a.candidateId, petId: s.walk.petId, slot: a.slot, place: a.place, status: 'scheduled' };
-      return { ...s, appointments: [appt, ...s.appointments], toast: '邀约已发出，提前 1 小时提醒你' };
+    case 'walk/leave': {
+      const e = s.walkEvents.find((x) => x.id === a.id);
+      if (!e || !e.joined || e.mine || e.status !== 'open') return s;
+      return { ...s, walkEvents: s.walkEvents.map((x) => (x.id === e.id ? { ...x, joined: false } : x)), toast: '已退出这个局' };
     }
 
-    case 'walk/met': {
-      const ap = s.appointments.find((x) => x.id === a.apptId);
-      const c = s.candidates.find((x) => x.id === ap?.candidateId);
-      if (!ap || !c) return s;
-      return { ...s, appointments: s.appointments.map((x) => (x.id === ap.id ? { ...x, status: 'met' } : x)), events: [mkEvent(s, ap.petId, 'walk', a.date, `和${c.name}一起遛弯`, { visibility: 'friends' }), ...s.events], toast: '见面打卡成功，记得评价一下' };
+    case 'walk/host': {
+      const e: WalkEvent = { ...a.event, id: uid('we'), host: s.nickname, mine: true, geohash: s.myGeohash, dogs: [], joined: true, status: 'open' };
+      return { ...s, walkEvents: [e, ...s.walkEvents], toast: '遛狗局已发起，3 公里内合适的狗主人会看到' };
+    }
+
+    case 'walk/checkin': {
+      const e = s.walkEvents.find((x) => x.id === a.id);
+      if (!e || !e.joined || e.status !== 'open') return s;
+      const pet = petOf(s, s.walk.petId);
+      const ev = pet ? [mkEvent(s, pet.id, 'walk', a.date, `参加遛狗局：${e.place}（${e.dogs.length + 1} 只狗）`, { visibility: 'friends' })] : [];
+      return { ...s, walkEvents: s.walkEvents.map((x) => (x.id === e.id ? { ...x, status: 'checkedIn' } : x)), events: [...ev, ...s.events], toast: '到场打卡成功，遛完记得评价一下' };
     }
 
     case 'walk/rate': {
-      const ap = s.appointments.find((x) => x.id === a.apptId);
-      if (!ap) return s;
+      const e = s.walkEvents.find((x) => x.id === a.id);
+      if (!e || e.status !== 'checkedIn') return s;
       const good = a.rating !== 'bad';
+      const friend = good && !e.mine && !s.friends.includes(e.host);
       return {
-        ...s, appointments: s.appointments.map((x) => (x.id === ap.id ? { ...x, status: 'rated', rating: a.rating } : x)),
-        friends: good && !s.friends.includes(ap.candidateId) ? [...s.friends, ap.candidateId] : s.friends,
-        blocked: good ? s.blocked : [...s.blocked, ap.candidateId],
-        toast: good ? '已成为宠友，以后可以一键再约' : '已不再推荐，必要时可以举报',
+        ...s, walkEvents: s.walkEvents.map((x) => (x.id === e.id ? { ...x, status: 'rated', rating: a.rating } : x)),
+        friends: friend ? [...s.friends, e.host] : s.friends,
+        hiddenHosts: good || e.mine ? s.hiddenHosts : [...s.hiddenHosts, e.host],
+        toast: good ? (e.mine ? '谢谢组局，下次还来' : `${e.host}已成为宠友`) : '不再推荐这位发起人的局',
       };
     }
 

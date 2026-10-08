@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { addDays, ageText, diffDays } from '../src/domain/dates';
 import { decodeGeohash, distanceKm, encodeGeohash } from '../src/domain/geo';
-import { eligible, matchScore, rankCandidates } from '../src/domain/match';
+import { eventEligible, eventScore, rankEvents, sizesText } from '../src/domain/match';
 import { milestones, statsBetween } from '../src/domain/milestones';
 import { buildPlans, stageOf, templateFor } from '../src/domain/planTemplate';
 import { completePlan, completionReward, leadDays, shieldInfo } from '../src/domain/shield';
 import { buildSummary } from '../src/domain/summary';
 import { triage } from '../src/domain/triage';
-import type { Candidate, Plan, WalkProfile } from '../src/domain/types';
+import type { Plan, WalkEvent, WalkProfile } from '../src/domain/types';
 import { weatherLevel, weatherScore } from '../src/domain/weather';
 import { heldWeight, inRange, weighStreak, weightTrend } from '../src/domain/weight';
 import { deriveTasks, petWeather } from '../src/store/selectors';
@@ -67,7 +67,7 @@ describe('晴雨计', () => {
   it('计分与分档', () => {
     expect(weatherLevel(weatherScore([]))).toBe('sun');
     expect(weatherLevel(weatherScore(['喝水变少', '打喷嚏']))).toBe('cloud');
-    expect(weatherScore(['少吃', '便便偏软'], { weightAnomaly: true })).toBe(45);
+    expect(weatherScore(['少吃', '便便偏软'], { weightAnomaly: true })).toBe(55);
     expect(weatherLevel(45)).toBe('rain');
     expect(weatherLevel(weatherScore(['不吃', '呕吐']))).toBe('alert');
     expect(weatherLevel(100, true)).toBe('alert');
@@ -136,7 +136,7 @@ describe('里程碑与统计', () => {
   });
 });
 
-describe('位置与约遛匹配', () => {
+describe('位置与遛狗局', () => {
   const home = encodeGeohash(30.2741, 120.1551);
   it('geohash 只保留约一公里精度', () => {
     expect(home).toHaveLength(6);
@@ -145,20 +145,23 @@ describe('位置与约遛匹配', () => {
     expect(distanceKm(home, encodeGeohash(30.35, 120.25))).toBeGreaterThan(5);
   });
   const me: WalkProfile = { petId: 'p', size: 'M', temper: ['慢热', '温柔'], slots: ['工作日晚上', '周末上午'], places: [], scaredOfBig: false, inHeat: false };
-  const c = (o: Partial<Candidate>): Candidate => ({ id: 'c', name: 'x', owner: 'o', look: 'kele', breed: '柴犬', age: '2 岁', sex: '公', neutered: true, size: 'M', temper: ['温柔'], slots: ['周末上午'], geohash: home, vaccine: 'proof', inHeat: false, likesYou: true, ...o });
-  it('过滤：疫苗、发情期、距离、怕大狗', () => {
-    expect(eligible(me, true, c({}), 0.5)).toBe(true);
-    expect(eligible(me, false, c({}), 0.5)).toBe(false);
-    expect(eligible(me, true, c({ vaccine: 'none' }), 0.5)).toBe(false);
-    expect(eligible(me, true, c({ inHeat: true }), 0.5)).toBe(false);
-    expect(eligible(me, true, c({}), 4)).toBe(false);
-    expect(eligible({ ...me, size: 'S', scaredOfBig: true }, true, c({ size: 'L' }), 1)).toBe(false);
+  const ev = (o: Partial<WalkEvent>): WalkEvent => ({ id: 'e', host: 'h', when: '今晚 20:00', slot: '工作日晚上', place: 'p', geohash: home, sizes: ['S', 'M'], vibe: '安静慢遛', capacity: 5, dogs: [], joined: false, status: 'open', ...o });
+  it('过滤：疫苗、发情期、距离、体型、怕大狗、满员', () => {
+    expect(eventEligible(me, true, ev({}), 0.5)).toBe(true);
+    expect(eventEligible(me, false, ev({}), 0.5)).toBe(false);
+    expect(eventEligible({ ...me, inHeat: true }, true, ev({}), 0.5)).toBe(false);
+    expect(eventEligible(me, true, ev({}), 4)).toBe(false);
+    expect(eventEligible(me, true, ev({ sizes: ['S'] }), 0.5)).toBe(false);
+    expect(eventEligible({ ...me, scaredOfBig: true }, true, ev({ sizes: ['S', 'M', 'L'] }), 0.5)).toBe(false);
+    expect(eventEligible(me, true, ev({ capacity: 2, dogs: [{ name: 'a', look: 'kele', size: 'M' }, { name: 'b', look: 'kele', size: 'M' }] }), 0.5)).toBe(false);
   });
-  it('排序：时段、性格、体型、距离', () => {
-    expect(matchScore(me, c({ slots: ['工作日晚上', '周末上午'], temper: ['温柔'] }), 0)).toBe(100);
+  it('排序：时段 40 + 氛围 30 + 距离 20 + 规模 10', () => {
+    expect(eventScore(me, ev({ dogs: [{ name: 'a', look: 'kele', size: 'M' }, { name: 'b', look: 'kele', size: 'M' }] }), 0)).toBe(100);
+    expect(sizesText(['S', 'M'])).toBe('小型、中型犬');
+    expect(sizesText(['S', 'M', 'L'])).toBe('不限体型');
     const s = seed(T);
-    const ranked = rankCandidates(s.walk, true, s.myGeohash, s.candidates, new Set(s.friends));
-    expect(ranked.map((r) => r.c.name)).toEqual(['馒头', '可乐']);
+    const ranked = rankEvents(s.walk, true, s.myGeohash, s.walkEvents, new Set(s.hiddenHosts));
+    expect(ranked.map((r) => [r.e.host, r.score])).toEqual([['馒头爸', 100], ['可乐妈', 62]]);
   });
 });
 

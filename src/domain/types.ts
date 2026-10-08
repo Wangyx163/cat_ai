@@ -39,7 +39,7 @@ export interface CheckSession {
 
 export interface Post {
   id: string; author: string; look: Look; layer: Layer; circle: string; text: string; tags: string[];
-  ask?: boolean; fish: number; answers: number; adopted?: boolean; mine?: boolean; liked?: boolean; ago: string; image?: string;
+  ask?: boolean; fish: number; answers: number; adopted?: boolean; mine?: boolean; liked?: boolean; ago: string; image?: string; cover?: string;
 }
 
 export interface Sighting { at: string; note: string; by: string }
@@ -51,13 +51,12 @@ export interface LostAlert {
 export interface WalkProfile {
   petId: string; size: Size; temper: string[]; slots: string[]; places: string[]; scaredOfBig: boolean; inHeat: boolean;
 }
-export interface Candidate {
-  id: string; name: string; owner: string; look: Look; breed: string; age: string; sex: string; neutered: boolean; size: Size;
-  temper: string[]; slots: string[]; geohash: string; vaccine: 'proof' | 'self' | 'none'; inHeat: boolean; likesYou: boolean; scaredOfBig?: boolean;
-}
-export interface Appointment {
-  id: string; candidateId: string; petId: string; slot: string; place: string;
-  status: 'scheduled' | 'met' | 'rated'; rating?: 'great' | 'ok' | 'bad';
+export interface WalkDog { name: string; look: Look; size: Size }
+/** 遛狗局：多人、公共地点、固定时段；dogs 不含自家狗 */
+export interface WalkEvent {
+  id: string; host: string; mine?: boolean; when: string; slot: string; place: string; geohash: string;
+  sizes: Size[]; vibe: string; capacity: number; dogs: WalkDog[]; joined: boolean;
+  status: 'open' | 'checkedIn' | 'rated'; rating?: 'great' | 'ok' | 'bad';
 }
 export interface Foster {
   id: string; petId: string; from: ISODate; to: ISODate; services: string[]; status: 'open' | 'accepted' | 'done';
@@ -70,8 +69,8 @@ export interface State {
   version: number; nickname: string; members: Member[]; me: string; fish: number; badges: string[]; settings: Settings;
   pets: Pet[]; plans: Plan[]; events: PetEvent[]; sunnyDays: Record<string, number>;
   dailyDone: Record<ISODate, boolean>; dailySkipped: Record<ISODate, boolean>; followUp: Record<string, ISODate>;
-  checks: CheckSession[]; posts: Post[]; lost: LostAlert[]; walk: WalkProfile; candidates: Candidate[];
-  skipped: string[]; sniffed: string[]; blocked: string[]; friends: string[]; appointments: Appointment[];
+  checks: CheckSession[]; posts: Post[]; lost: LostAlert[]; walk: WalkProfile; walkEvents: WalkEvent[];
+  hiddenHosts: string[]; friends: string[];
   fosters: Foster[]; homes: Home[]; visitsSent: Record<string, number>; likesToday: Record<ISODate, number>;
   myGeohash: string; toast?: string;
 }

@@ -1,45 +1,51 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { asset } from '../components/assets';
+import { asset, petImage, RATIO } from '../components/assets';
 import { Icon } from '../components/icons';
 import { posterText, SightingSheet } from '../components/SightingSheet';
-import { Avatar, Btn, Card, Chip, Empty, IconBtn, Segmented, Sheet, Tag } from '../components/ui';
+import { Avatar, Btn, Card, Chip, Empty, IconBtn, Sheet, Tag } from '../components/ui';
 import { copyText } from '../components/util';
 import { ageText } from '../domain/dates';
-import type { Layer, LostAlert } from '../domain/types';
+import { petWeights } from '../domain/summary';
+import type { Layer, LostAlert, Post } from '../domain/types';
 import { uid } from '../store/reducer';
 import { petWeather } from '../store/selectors';
 import { useStore } from '../store/StoreContext';
-import { petWeights } from '../domain/summary';
 
-export const LAYER_NAME: Record<Layer, string> = { friends: '宠友', nearby: '附近', city: '同城', interest: '同好' };
-const LAYER_SUB: Record<Layer, string> = { friends: 'L1', nearby: 'L2', city: 'L3', interest: 'L4' };
+type Tab = 'rec' | 'near' | 'friends' | 'interest';
+const TABS: Record<Tab, string> = { rec: '推荐', near: '附近', friends: '宠友', interest: '同好' };
+const GROUPS = ['全部', '橘猫圈', '英短圈', '柯基圈', '柴犬圈', '新手幼猫圈'];
+const ENTRIES = [{ key: 'entry_walk', label: '遛狗局', to: '/circle/walk' }, { key: 'entry_visit', label: '串门', to: '/circle/visit' },
+  { key: 'entry_lost', label: '寻宠', to: '/circle/lost' }, { key: 'entry_foster', label: '托付', to: '/circle/foster' }];
+const TINT: Record<string, string> = { juzi: 'amber', zhima: 'sky', doubao: 'green', kele: 'orange' };
+const ASK_TO: Record<string, Layer> = { 同好: 'interest', 附近: 'nearby' };
 
 function AskSheet({ onClose }: { onClose: () => void }) {
   const { state, dispatch, today } = useStore();
   const [petId, setPetId] = useState(state.pets[0]?.id ?? '');
   const [text, setText] = useState('');
-  const [layer, setLayer] = useState<Layer>('interest');
-  const pet = state.pets.find((p) => p.id === petId);
-  const ctx = pet ? [pet.species === 'cat' ? '猫' : '狗', pet.birthday ? ageText(pet.birthday, today) : '', petWeights(state, pet.id).slice(-1)[0] ? `${petWeights(state, pet.id).sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0].kg} kg` : '',
-    ...petWeather(state, pet.id, today).reasons.slice(0, 2)].filter(Boolean) : [];
+  const [to, setTo] = useState('同好');
   const [useCtx, setUseCtx] = useState(true);
+  const pet = state.pets.find((p) => p.id === petId);
+  const last = pet ? petWeights(state, pet.id).sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0] : undefined;
+  const ctx = pet ? [pet.species === 'cat' ? '猫' : '狗', pet.birthday ? ageText(pet.birthday, today) : '', last ? `${last.kg} kg` : '', ...petWeather(state, pet.id, today).reasons.slice(0, 2)].filter(Boolean) : [];
   return (
     <Sheet open onClose={onClose} title="带档案提问">
       <div className="row row--wrap">{state.pets.map((p) => <Chip key={p.id} on={p.id === petId} onClick={() => setPetId(p.id)}>{p.name}</Chip>)}</div>
       <label className="field"><span className="label">想问什么</span><textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="比如：换粮期间软便，大家怎么过渡的？" /></label>
       <div className="row row--wrap"><Chip on={useCtx} onClick={() => setUseCtx(!useCtx)}>附上宠物卡</Chip>{useCtx && ctx.map((t) => <Tag key={t}>{t}</Tag>)}</div>
       <span className="label">发到</span>
-      <div className="row row--wrap">{(['interest', 'nearby', 'city'] as Layer[]).map((l) => <Chip key={l} on={layer === l} onClick={() => setLayer(l)}>{LAYER_NAME[l]}</Chip>)}</div>
+      <div className="row row--wrap">{Object.keys(ASK_TO).map((l) => <Chip key={l} on={to === l} onClick={() => setTo(l)}>{l}</Chip>)}</div>
       <Btn full disabled={!text.trim() || !pet} onClick={() => {
         if (!pet) return;
-        dispatch({ type: 'post/add', post: { id: uid('post'), author: state.nickname, look: pet.look, layer, circle: layer === 'interest' ? `${pet.breed}圈` : LAYER_NAME[layer], text: text.trim(), tags: useCtx ? ctx : [pet.name], ask: true, fish: 0, answers: 0, mine: true, ago: '刚刚' } });
+        dispatch({ type: 'post/add', post: { id: uid('post'), author: state.nickname, look: pet.look, layer: ASK_TO[to], circle: to === '同好' ? `${pet.breed}圈` : '附近', text: text.trim(), tags: useCtx ? ctx : [pet.name], ask: true, fish: 0, answers: 0, mine: true, ago: '刚刚' } });
         onClose();
       }}>发布</Btn>
     </Sheet>
   );
 }
 
+/** 寻宠卡片（走失互助页也在用） */
 export function LostCard({ l, onSee }: { l: LostAlert; onSee: (l: LostAlert) => void }) {
   const { dispatch } = useStore();
   return (
@@ -55,50 +61,83 @@ export function LostCard({ l, onSee }: { l: LostAlert; onSee: (l: LostAlert) => 
   );
 }
 
+function PostCard({ p }: { p: Post }) {
+  const { dispatch, today } = useStore();
+  const src = <span className="fcard__src"><Tag tone="white">{p.circle}</Tag></span>;
+  return (
+    <article className="fcard">
+      {p.cover ? <div className="fcard__cover"><img src={asset(p.cover)} alt="" style={{ aspectRatio: String(RATIO[p.cover] ?? 0.75) }} />{src}</div>
+        : p.image ? <div className="fcard__cover"><img src={p.image} alt="" />{src}</div>
+          : !p.ask ? <div className={`fcard__pet fcard__pet--${TINT[p.look]}`}><img src={petImage(p.look, 'happy').src} alt="" />{src}</div> : null}
+      <div className="fcard__body">
+        {p.ask && <div className="row"><Tag tone="amber">带档案提问</Tag><small className="muted">{p.circle}</small></div>}
+        <p className="fcard__title">{p.text}</p>
+        {p.ask && <div className="row row--wrap">{p.tags.map((t) => <Tag key={t}>{t}</Tag>)}</div>}
+        <div className="row fcard__meta">
+          <Avatar look={p.look} size={22} />
+          <small className="grow">{p.author}{p.ask ? ` · ${p.answers} 个回答` : ''}</small>
+          {p.mine ? <small>收到 {p.fish}</small> : (
+            <button type="button" className={`fish-btn${p.liked ? ' fish-btn--on' : ''}`} disabled={p.liked} aria-label={`${p.liked ? '已送小鱼干' : '送小鱼干'}，共 ${p.fish}`}
+              onClick={() => dispatch({ type: 'post/like', postId: p.id, date: today })}>
+              <img src={asset('icon_fish')} alt="" width={26} height={9} /><span className="num">{p.fish}</span>
+            </button>
+          )}
+        </div>
+        {p.mine && p.ask && p.answers > 0 && !p.adopted && <Btn size="sm" kind="text" onClick={() => dispatch({ type: 'post/adopt', postId: p.id })}>采纳</Btn>}
+      </div>
+    </article>
+  );
+}
+
+/** 圈子：顶部 Tab（推荐 · 附近 · 宠友 · 同好），默认推荐；附近求助置顶；双列瀑布流 */
 export default function CirclePage() {
-  const { state, dispatch, today } = useStore();
+  const { state } = useStore();
   const [sp, setSp] = useSearchParams();
-  const layer: Layer = (sp.get('layer') as Layer) in LAYER_NAME ? (sp.get('layer') as Layer) : 'nearby';
+  const tab: Tab = (sp.get('tab') as Tab) in TABS ? (sp.get('tab') as Tab) : 'rec';
+  const [group, setGroup] = useState('全部');
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
   const [seeing, setSeeing] = useState<LostAlert | null>(null);
   const alerts = state.lost.filter((l) => !l.resolved && !l.mine);
-  const posts = state.posts.filter((p) => p.layer === layer && (!q || p.text.includes(q) || p.tags.some((t) => t.includes(q))));
   const set = (k: string, v?: string) => { const n = new URLSearchParams(sp); if (v) n.set(k, v); else n.delete(k); setSp(n, { replace: true }); };
+  const posts = state.posts.filter((p) => (tab === 'rec' || (tab === 'near' ? p.layer === 'nearby' || p.layer === 'city' : tab === 'friends' ? p.layer === 'friends' : p.layer === 'interest'))
+    && (tab !== 'interest' || group === '全部' || p.circle === group) && (!q || p.text.includes(q) || p.tags.some((t) => t.includes(q))));
+  const cols = [posts.filter((_, i) => i % 2 === 0), posts.filter((_, i) => i % 2 === 1)];
+  const alert = alerts[0];
   return (
     <div className="page">
       <header className="home-head">
-        <div className="grow"><h1 className="display">圈子</h1><small className="muted">附近 1 公里 · 只显示到街区</small></div>
+        <h1 className="display grow">圈子</h1>
         <IconBtn icon="search" label="搜索" onClick={() => setSearching(!searching)} />
+        <Btn size="sm" kind="secondary" icon="plus" onClick={() => set('compose', '1')}>提问</Btn>
       </header>
       {searching && <input className="search" autoFocus placeholder="搜索动态和标签" value={q} onChange={(e) => setQ(e.target.value)} aria-label="搜索动态" />}
-      <Segmented options={Object.keys(LAYER_NAME) as Layer[]} value={layer} onChange={(v) => set('layer', v)} labels={LAYER_NAME} sub={LAYER_SUB} />
-      <div className="grid2">
-        <Link className="tile" to="/circle/walk"><Avatar look="kele" size={40} tone="orange" /><span><b>约遛</b><small>狗狗嗅一嗅匹配</small></span></Link>
-        <Link className="tile" to="/circle/visit"><span className="tile__door"><img src={asset('obj_door')} alt="" /></span><span><b>云串门</b><small>去别人家送小鱼干</small></span></Link>
-        <Link className="tile" to="/circle/lost"><span className="icircle icircle--coral"><Icon name="alert" /></span><span><b>走失互助</b><small>附近求助与线索</small></span>
-          {alerts.length > 0 && <b className="badge badge--tile">{alerts.length}</b>}</Link>
-        <Link className="tile" to="/circle/foster"><span className="icircle icircle--green"><Icon name="heart" /></span><span><b>临时托付</b><small>请宠友上门照顾</small></span></Link>
+      <div className="ttabs" role="tablist" aria-label="圈子分类">
+        {(Object.keys(TABS) as Tab[]).map((t) => (
+          <button key={t} type="button" role="tab" aria-selected={tab === t} className={`ttab${tab === t ? ' ttab--on' : ''}`} onClick={() => set('tab', t === 'rec' ? undefined : t)}>{TABS[t]}</button>
+        ))}
       </div>
-      {layer === 'nearby' && alerts.slice(0, 1).map((l) => <LostCard key={l.id} l={l} onSee={setSeeing} />)}
-      <div className="row"><h2 className="h2 grow">{LAYER_NAME[layer]}动态</h2><Btn size="sm" kind="secondary" icon="plus" onClick={() => set('compose', '1')}>带档案提问</Btn></div>
-      {posts.length === 0 && <Empty img="empty_nearby" title={`${LAYER_NAME[layer]}还没有动态`}><Btn size="sm" kind="secondary" onClick={() => set('layer', 'interest')}>先去同好圈看看</Btn></Empty>}
-      {posts.map((p) => (
-        <Card key={p.id}>
-          <div className="row"><Avatar look={p.look} size={40} /><div className="grow"><b>{p.author}</b><br /><small className="muted">{p.circle} · {p.ago}</small></div>{p.ask && <Tag tone="amber">带档案提问</Tag>}</div>
-          <p className="post__text">{p.text}</p>
-          {p.image && <img className="post__img" src={p.image} alt="" />}
-          <div className="row row--wrap">{p.tags.map((t) => <Tag key={t}>{t}</Tag>)}</div>
-          <div className="row">
-            <small className="muted grow">{p.answers ? `${p.answers} 个回答${p.adopted ? ' · 已采纳 1' : ''}` : p.mine ? '等待宠友回答' : '还没有回答'}</small>
-            {p.mine ? <small className="muted">收到小鱼干 {p.fish}</small> : (
-              <button type="button" className={`btn btn--secondary btn--sm${p.liked ? ' btn--done' : ''}`} disabled={p.liked} onClick={() => dispatch({ type: 'post/like', postId: p.id, date: today })}>
-                <img src={asset('icon_fish')} alt="" width={22} height={10} /><span>{p.liked ? '已送' : '送小鱼干'} {p.fish}</span>
-              </button>)}
-            {p.ask && p.answers > 0 && !p.adopted && p.mine && <Btn size="sm" kind="text" onClick={() => dispatch({ type: 'post/adopt', postId: p.id })}>采纳</Btn>}
-          </div>
-        </Card>
-      ))}
+      <nav className="kk-row" aria-label="常用入口">
+        {ENTRIES.map((e) => (
+          <Link key={e.key} className="kk" to={e.to}>
+            <span className="kk__pic"><img src={asset(e.key)} alt="" /></span>{e.label}
+            {e.key === 'entry_lost' && alerts.length > 0 && <b className="badge" aria-label={`${alerts.length} 条附近求助`}>{alerts.length}</b>}
+          </Link>
+        ))}
+      </nav>
+      {(tab === 'rec' || tab === 'near') && alert && (
+        <div className="urgent">
+          <Icon name="alert" color="#C23136" />
+          <div className="grow"><b>{alert.radiusKm} 公里内 · {alert.petName}走失</b><br /><small className="muted">{alert.since} · {alert.desc}</small></div>
+          <Btn size="sm" icon="camera" onClick={() => setSeeing(alert)}>我看到了</Btn>
+        </div>
+      )}
+      {tab === 'interest' && <div className="row row--wrap">{GROUPS.map((g) => <Chip key={g} small on={group === g} onClick={() => setGroup(g)}>{g}</Chip>)}</div>}
+      {posts.length === 0 ? (
+        <Empty img="empty_nearby" title={`${TABS[tab]}还没有动态`}><Btn size="sm" kind="secondary" onClick={() => set('tab')}>看看推荐</Btn></Empty>
+      ) : (
+        <div className="masonry">{cols.map((c, i) => <div key={i} className="masonry__col">{c.map((p) => <PostCard key={p.id} p={p} />)}</div>)}</div>
+      )}
       {sp.get('compose') === '1' && <AskSheet onClose={() => set('compose')} />}
       <SightingSheet alert={seeing} onClose={() => setSeeing(null)} />
     </div>

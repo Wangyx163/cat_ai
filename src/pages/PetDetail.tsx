@@ -1,25 +1,29 @@
 import { useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { asset } from '../components/assets';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { asset, petImage } from '../components/assets';
 import { Icon } from '../components/icons';
 import { ShareComposer } from '../components/ShareComposer';
-import { Avatar, Btn, Card, Chip, Empty, Segmented, Sheet, Tag, TopBar, WeatherBadge } from '../components/ui';
+import { Avatar, Btn, Card, Chip, Empty, Segmented, Sheet, TopBar, WeatherBadge } from '../components/ui';
 import { fileToDataUrl } from '../components/util';
 import { ageText, diffDays, fmtMD, monthKey, monthLabel } from '../domain/dates';
 import { daysHome, lastMonthKey, milestones, statsBetween } from '../domain/milestones';
-import { SHIELD_KINDS, SHIELD_TITLE, shieldInfo } from '../domain/shield';
+import { SHIELD_KINDS, shieldInfo } from '../domain/shield';
+import { petWeights } from '../domain/summary';
 import type { EventType, Pet, PetEvent, Size, Visibility } from '../domain/types';
 import { WEATHER_NAME } from '../domain/weather';
+import { weightTrend } from '../domain/weight';
 import { findPet, leadOf, memberName, petWeather } from '../store/selectors';
 import { useStore } from '../store/StoreContext';
 
-type TabKey = 'status' | 'grow' | 'profile' | 'visit';
-const TABS: Record<TabKey, string> = { status: '状态', grow: '成长', profile: '档案', visit: '就诊' };
+type TabKey = 'grow' | 'profile';
+const TABS: Record<TabKey, string> = { grow: '成长', profile: '档案' };
 type Filter = 'all' | 'daily' | 'health' | 'milestone';
 const FILTERS: Record<Filter, string> = { all: '全部', daily: '日常', health: '健康', milestone: '里程碑' };
 const HEALTH: EventType[] = ['care', 'weight', 'visit', 'check', 'daily'];
 const EV_ICON: Record<EventType, string> = { daily: 'sun', care: 'shield', weight: 'scale', moment: 'image', visit: 'heart', walk: 'paw', help: 'users', check: 'heart' };
-const VIS: Record<Visibility, string> = { private: '仅自己', family: '家庭', friends: '宠友', nearby: '附近', public: '同好' };
+/** 可见范围三档：仅家人（默认）/ 宠友 / 公开；健康记录固定只给家人 */
+const VIS: Partial<Record<Visibility, string>> = { family: '仅家人', friends: '宠友', public: '公开' };
+const VIS_KEYS: Visibility[] = ['family', 'friends', 'public'];
 
 function Compose({ pet, onClose }: { pet: Pet; onClose: () => void }) {
   const { dispatch, today } = useStore();
@@ -33,7 +37,8 @@ function Compose({ pet, onClose }: { pet: Pet; onClose: () => void }) {
         <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setImage(await fileToDataUrl(f)); }} /></label>
       {image && <img className="compose-img" src={image} alt="预览" />}
       <span className="label">谁能看到</span>
-      <div className="row row--wrap">{(Object.keys(VIS) as Visibility[]).map((v) => <Chip key={v} on={vis === v} onClick={() => setVis(v)}>{VIS[v]}</Chip>)}</div>
+      <div className="row row--wrap">{VIS_KEYS.map((v) => <Chip key={v} on={vis === v} onClick={() => setVis(v)}>{VIS[v]}</Chip>)}</div>
+      <small className="muted">{vis === 'public' ? '会出现在圈子的推荐和同好里，位置只显示到街区' : vis === 'friends' ? '一起遛过或互相串门的宠友能看到' : '只有一起养它的家人能看到'}</small>
       <Btn full disabled={!text.trim()} onClick={() => { dispatch({ type: 'moment/add', petId: pet.id, date: today, text, image, visibility: vis }); onClose(); }}>记进时间线</Btn>
     </Sheet>
   );
@@ -74,26 +79,27 @@ function Profile({ pet }: { pet: Pet }) {
   );
 }
 
+/** 宠物详情：只放这只宠物的故事（成长）和档案；健康数据的「家」在养护，这里只放一张摘要卡 */
 export default function PetDetail() {
   const { petId = '' } = useParams();
   const [sp, setSp] = useSearchParams();
-  const { state, dispatch, today } = useStore();
-  const nav = useNavigate();
+  const { state, today } = useStore();
   const pet = findPet(state, petId);
   const [filter, setFilter] = useState<Filter>('all');
   const [share, setShare] = useState<{ title: string; month: string } | null>(null);
   if (!pet) return <div className="page"><TopBar title="宠物详情" back="/" /><Empty img="empty_timeline" title="没找到这只宠物" /></div>;
-  const tab = (sp.get('tab') as TabKey) in TABS ? (sp.get('tab') as TabKey) : 'status';
-  const setTab = (t: TabKey) => setSp({ tab: t }, { replace: true });
+  const tab: TabKey = sp.get('tab') === 'profile' ? 'profile' : 'grow';
   const w = petWeather(state, pet.id, today);
+  const shields = state.plans.filter((p) => p.petId === pet.id && SHIELD_KINDS.includes(p.kind)).map((p) => shieldInfo(p, today, leadOf(state)).state);
+  const safe = shields.filter((x) => x === 'safe').length;
+  const todo = SHIELD_KINDS.length - safe;
+  const tw = weightTrend(petWeights(state, pet.id), today);
   const ms = milestones(pet, today);
   const recentMs = ms.find((m) => diffDays(today, m.date) <= 30);
   const lm = lastMonthKey(today);
   const lmStats = statsBetween(state, pet.id, `${lm}-01`, `${lm}-31`);
   const events = state.events.filter((e) => e.petId === pet.id && (filter === 'all' || (filter === 'daily' ? e.type === 'moment' || e.type === 'walk' : filter === 'health' ? HEALTH.includes(e.type) : false)));
   const groups = events.reduce<Record<string, PetEvent[]>>((g, e) => { (g[monthKey(e.date)] ??= []).push(e); return g; }, {});
-  const recentVisit = state.events.some((e) => e.petId === pet.id && e.type === 'visit' && e.title.startsWith('看医生') && diffDays(today, e.date) <= 30);
-  const myLost = state.lost.find((l) => l.petId === pet.id && !l.resolved);
 
   return (
     <div className="page">
@@ -101,36 +107,23 @@ export default function PetDetail() {
       <div className="row pet-head">
         <Avatar look={pet.look} size={72} tone="amber" alt={pet.name} />
         <div className="grow"><h1 className="display">{pet.name}</h1><small className="muted">{pet.breed} · {pet.birthday ? ageText(pet.birthday, today) : '年龄未填'} · 到家 {daysHome(pet, today)} 天</small></div>
-        <Tag tone={w.level === 'sun' ? 'sun' : w.level === 'alert' ? 'coral-solid' : 'sky'} icon={w.level}>今天 {WEATHER_NAME[w.level]}</Tag>
       </div>
-      <Segmented options={Object.keys(TABS) as TabKey[]} value={tab} onChange={setTab} labels={TABS} />
-
-      {tab === 'status' && (
-        <section className="stack">
-          <Card>
-            <div className="row"><WeatherBadge w={w.level} size={40} /><div className="grow"><b>今日天气：{WEATHER_NAME[w.level]}（{w.score} 分）</b><br /><small className="muted">{w.reasons.length ? w.reasons.join('、') : '每日一问一切正常'}</small></div></div>
-          </Card>
-          <Card>
-            <h2 className="h2">护盾</h2>
-            {SHIELD_KINDS.map((k) => {
-              const p = state.plans.find((x) => x.petId === pet.id && x.kind === k);
-              const info = p ? shieldInfo(p, today, leadOf(state)) : { state: 'unknown' as const };
-              const t = { safe: ['安全', 'green'], soon: ['快到期', 'amber'], over: ['逾期', 'coral-solid'], unknown: ['待确认', 'muted'] }[info.state];
-              return <div key={k} className="list-row"><b className="grow">{SHIELD_TITLE[k]}</b><Tag tone={t[1]}>{t[0]}</Tag>{info.due && <small className="muted">{fmtMD(info.due)}</small>}</div>;
-            })}
-          </Card>
-          <div className="row"><Btn kind="secondary" className="grow" to={`/care?pet=${pet.id}`}>去养护</Btn><Btn kind="secondary" className="grow" icon="heart" to={`/check/${pet.id}`}>状态检测</Btn></div>
-        </section>
-      )}
+      <Link className="status-card" to={`/care?pet=${pet.id}`}>
+        <WeatherBadge w={w.level} size={34} />
+        <span className="grow"><b>今天 {WEATHER_NAME[w.level]} · 护盾{todo ? ` ${todo} 项要处理` : ` ${safe} 项安全`}</b><br />
+          <small className="muted">{tw.last !== undefined ? `体重 ${tw.last} kg · ` : ''}健康数据都在「养护」</small></span>
+        <Icon name="chev" size={20} />
+      </Link>
+      <Segmented options={Object.keys(TABS) as TabKey[]} value={tab} onChange={(t) => setSp(t === 'grow' ? {} : { tab: t }, { replace: true })} labels={TABS} />
 
       {tab === 'grow' && (
         <section className="stack">
-          <div className="row"><h2 className="h2 grow">{monthLabel(monthKey(today))}</h2><Btn size="sm" kind="secondary" icon="plus" onClick={() => setSp({ tab: 'grow', compose: '1' }, { replace: true })}>记日常</Btn></div>
+          <div className="row"><h2 className="h2 grow">{monthLabel(monthKey(today))}</h2><Btn size="sm" kind="secondary" icon="plus" onClick={() => setSp({ compose: '1' }, { replace: true })}>记日常</Btn></div>
           <div className="row row--wrap">{(Object.keys(FILTERS) as Filter[]).map((f) => <Chip key={f} small on={filter === f} onClick={() => setFilter(f)}>{FILTERS[f]}</Chip>)}</div>
           {(filter === 'all' || filter === 'milestone') && recentMs && (
             <Card tone="orange" className="milestone">
               <div className="row">
-                <img src={asset(`pet_${pet.look === 'kele' ? 'kele' : pet.look}_happy`)} alt="" className="milestone__img" />
+                <img src={petImage(pet.look, 'happy').src} alt="" className="milestone__img" />
                 <div className="grow stack-sm">
                   <div className="display h2">{recentMs.title}啦</div>
                   <small>{fmtMD(recentMs.date)} · 时间线和分享卡片已为你准备好</small>
@@ -158,7 +151,7 @@ export default function PetDetail() {
                   <div className={`rail__card${e.type === 'moment' ? ' rail__card--big' : ''}`}>
                     {e.image && <img className="rail__img" src={e.image} alt="" />}
                     <div className="row"><Icon name={EV_ICON[e.type]} size={18} /><span className="grow">{fmtMD(e.date)} {e.title}</span></div>
-                    <small className="muted">{[e.detail, e.type === 'care' || e.type === 'weight' || e.type === 'daily' ? `${memberName(state, e.by)}记录` : '', e.type === 'moment' ? `${VIS[e.visibility]}可见` : ''].filter(Boolean).join(' · ')}</small>
+                    <small className="muted">{[e.detail, e.type === 'care' || e.type === 'weight' || e.type === 'daily' ? `${memberName(state, e.by)}记录` : '', e.type === 'moment' ? `${VIS[e.visibility] ?? '仅家人'}可见` : ''].filter(Boolean).join(' · ')}</small>
                   </div>
                 </div>
               ))}
@@ -170,22 +163,7 @@ export default function PetDetail() {
 
       {tab === 'profile' && <Profile pet={pet} />}
 
-      {tab === 'visit' && (
-        <section className="stack">
-          <Btn full icon="heart" to={`/check/${pet.id}`}>开始状态检测</Btn>
-          <Card>
-            <h2 className="h2">检测与就诊</h2>
-            {state.checks.filter((c) => c.petId === pet.id).map((c) => <div key={c.id} className="list-row"><b className="grow">{fmtMD(c.date)} 状态检测</b><Tag>{c.level === 'emergency' ? '建议尽快就医' : c.level === 'appointment' ? '建议预约' : '先观察'}</Tag></div>)}
-            {state.events.filter((e) => e.petId === pet.id && e.type === 'visit').map((e) => <div key={e.id} className="list-row"><b className="grow">{fmtMD(e.date)} {e.title}</b><small className="muted">{e.detail}</small></div>)}
-            {!state.checks.some((c) => c.petId === pet.id) && !state.events.some((e) => e.petId === pet.id && e.type === 'visit') && <p className="muted">还没有记录</p>}
-          </Card>
-          {recentVisit && <Btn kind="secondary" full onClick={() => dispatch({ type: 'visit/recovered', petId: pet.id, date: today })}>标记已痊愈</Btn>}
-          {myLost ? <Btn kind="secondary" full to="/circle/lost">查看走失求助进展</Btn>
-            : <Btn kind="secondary" full icon="alert" onClick={() => { dispatch({ type: 'lost/create', petId: pet.id }); nav('/circle/lost'); }}>{pet.name}走丢了？发起走失求助</Btn>}
-        </section>
-      )}
-
-      {sp.get('compose') === '1' && <Compose pet={pet} onClose={() => setSp({ tab: 'grow' }, { replace: true })} />}
+      {sp.get('compose') === '1' && <Compose pet={pet} onClose={() => setSp({}, { replace: true })} />}
       {share && <ShareComposer pet={pet} title={share.title} month={share.month} onClose={() => setShare(null)} />}
     </div>
   );

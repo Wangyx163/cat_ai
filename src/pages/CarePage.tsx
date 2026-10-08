@@ -40,7 +40,7 @@ function ShieldTile({ kind, plan, petId, today, onDo, primary }: { kind: PlanKin
 }
 
 export default function CarePage() {
-  const { state, today } = useStore();
+  const { state, dispatch, today } = useStore();
   const [sp, setSp] = useSearchParams();
   const petId = sp.get('pet') && findPet(state, sp.get('pet') ?? '') ? (sp.get('pet') as string) : state.pets[0]?.id ?? '';
   const pet = findPet(state, petId);
@@ -109,10 +109,20 @@ export default function CarePage() {
           })}
         </Card>
       )}
-      <div className="row">
-        <Btn kind="secondary" icon="heart" to={`/check/${petId}`} className="grow">状态检测</Btn>
-        <Btn kind="secondary" icon="calendar" to={`/plan/${petId}`} className="grow">计划与日历</Btn>
-      </div>
+      <Card>
+        <div className="row"><h2 className="h2 grow">检测与就诊</h2><Btn size="sm" kind="secondary" icon="heart" to={`/check/${petId}`}>状态检测</Btn></div>
+        {state.checks.filter((c) => c.petId === petId).map((c) => (
+          <div key={c.id} className="list-row"><b className="grow">{fmtMD(c.date)} 状态检测</b><Tag>{c.level === 'emergency' ? '建议尽快就医' : c.level === 'appointment' ? '建议预约' : '先观察'}</Tag></div>
+        ))}
+        {state.events.filter((e) => e.petId === petId && e.type === 'visit').map((e) => (
+          <div key={e.id} className="list-row"><b className="grow">{fmtMD(e.date)} {e.title}</b><small className="muted">{e.detail}</small></div>
+        ))}
+        {!state.checks.some((c) => c.petId === petId) && !state.events.some((e) => e.petId === petId && e.type === 'visit') && <p className="muted">还没有检测和就诊记录</p>}
+        {state.events.some((e) => e.petId === petId && e.type === 'visit' && e.title.startsWith('看医生') && diffDays(today, e.date) <= 30) && (
+          <Btn kind="secondary" full onClick={() => dispatch({ type: 'visit/recovered', petId, date: today })}>标记已痊愈</Btn>
+        )}
+      </Card>
+      <Btn kind="secondary" icon="calendar" to={`/plan/${petId}`} full>计划与日历</Btn>
       <CompleteSheet plan={completing} onClose={() => setCompleting(null)} />
       <WeighSheet petId={petId} open={sp.get('weigh') === '1'} onClose={() => setParam('weigh')} />
     </div>

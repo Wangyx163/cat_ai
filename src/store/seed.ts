@@ -2,7 +2,7 @@ import { addDays, type ISODate } from '../domain/dates';
 import { encodeGeohash } from '../domain/geo';
 import type { PetEvent, Plan, PlanKind, State } from '../domain/types';
 
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 /** 演示数据：全部相对「今天」生成，保证任何一天打开都是同样的故事 */
 export function seed(today: ISODate): State {
@@ -51,7 +51,7 @@ export function seed(today: ISODate): State {
   care('p_doubao', 'deworm_out', '体外驱虫', d(-28));
   ev('p_doubao', 'daily', d(-1), '每日一问：喝水变少、打喷嚏', { data: { ok: false, issues: ['喝水变少', '打喷嚏'] } });
   ev('p_juzi', 'daily', d(-1), '每日一问：都挺好', { data: { ok: true, issues: [] } });
-  ev('p_doubao', 'walk', d(-9), '和布丁一起遛弯', { visibility: 'friends' });
+  ev('p_doubao', 'walk', d(-9), '参加遛狗局：滨河公园东门草坪（4 只狗）', { visibility: 'friends' });
 
   const home = encodeGeohash(30.2741, 120.1551);
   return {
@@ -68,22 +68,27 @@ export function seed(today: ISODate): State {
     dailyDone: { [d(-1)]: true }, dailySkipped: {}, followUp: {}, checks: [],
     posts: [
       { id: 'post_1', author: '可可妈', look: 'zhima', layer: 'interest', circle: '英短圈', text: '7 个月英短软便两天，换粮大家都怎么过渡的？', tags: ['猫', '7 个月', '4.1 kg', '近 3 天少吃'], ask: true, fish: 12, answers: 3, adopted: true, ago: '3 小时前' },
-      { id: 'post_2', author: '布丁妈', look: 'doubao', layer: 'friends', circle: '宠友', text: '和豆包在滨河公园玩疯了，下周六继续！', tags: ['约遛'], fish: 8, answers: 2, ago: '昨天' },
+      { id: 'post_5', author: '晒太阳的橘', look: 'juzi', layer: 'interest', circle: '橘猫圈', text: '窗台是它的专属晒太阳位，一睡一下午', tags: ['橘猫', '日常'], fish: 56, answers: 8, ago: '1 小时前', cover: 'feed_cat_window' },
+      { id: 'post_2', author: '布丁妈', look: 'doubao', layer: 'friends', circle: '宠友', text: '周六滨河公园的遛狗局，来了 5 只狗狗，下周继续！', tags: ['遛狗局'], fish: 18, answers: 2, ago: '昨天', cover: 'walk_party' },
+      { id: 'post_6', author: '糖糖', look: 'zhima', layer: 'interest', circle: '新手幼猫圈', text: '第一次带猫打疫苗，要准备什么？', tags: ['猫', '3 个月', '新手'], ask: true, fish: 15, answers: 6, ago: '5 小时前' },
       { id: 'post_3', author: '大橘爸', look: 'juzi', layer: 'nearby', circle: '附近', text: '望江街区那家宠物医院周末也有值班医生，记一下。', tags: ['本地经验'], fish: 21, answers: 5, ago: '2 天前' },
-      { id: 'post_4', author: '柴柴家', look: 'kele', layer: 'city', circle: '同城', text: '周日上午城西公园有新手狗狗社交课，免费报名。', tags: ['同城活动'], fish: 30, answers: 9, ago: '3 天前' },
+      { id: 'post_4', author: '柴柴家', look: 'kele', layer: 'city', circle: '柴犬圈', text: '柴犬的笑容真的会传染', tags: ['柴犬'], fish: 46, answers: 9, ago: '3 天前' },
     ],
     lost: [{ id: 'lost_1', petName: '年糕', desc: '三花猫 · 胆小，叫名字会躲 · 戴红色项圈', area: '望江街区东侧', since: '2 小时前', radiusKm: 1, sightings: [], mine: false, resolved: false }],
     walk: { petId: 'p_doubao', size: 'M', temper: ['慢热', '温柔'], slots: ['工作日晚上', '周末上午'], places: ['滨河公园东门草坪'], scaredOfBig: false, inHeat: false },
-    candidates: [
-      { id: 'c_kele', name: '可乐', owner: '可乐妈', look: 'kele', breed: '柴犬', age: '2 岁', sex: '公', neutered: true, size: 'M', temper: ['社牛', '精力旺盛', '爱追逐'], slots: ['工作日晚上'], geohash: encodeGeohash(30.279, 120.16), vaccine: 'proof', inHeat: false, likesYou: true },
-      { id: 'c_buding', name: '布丁', owner: '布丁妈', look: 'doubao', breed: '柯基', age: '3 岁', sex: '母', neutered: true, size: 'M', temper: ['温柔', '慢热'], slots: ['周末上午', '工作日晚上'], geohash: encodeGeohash(30.27, 120.15), vaccine: 'self', inHeat: false, likesYou: true },
-      { id: 'c_mantou', name: '馒头', owner: '馒头爸', look: 'doubao', breed: '柯基', age: '4 岁', sex: '公', neutered: true, size: 'M', temper: ['好奇', '温柔'], slots: ['周末上午'], geohash: encodeGeohash(30.276, 120.149), vaccine: 'proof', inHeat: false, likesYou: false },
-      { id: 'c_lizi', name: '栗子', owner: '栗子爸', look: 'kele', breed: '柴犬', age: '1 岁', sex: '母', neutered: false, size: 'M', temper: ['社牛'], slots: ['工作日晚上'], geohash: encodeGeohash(30.275, 120.158), vaccine: 'proof', inHeat: true, likesYou: true },
-      { id: 'c_niannian', name: '年年', owner: '年年妈', look: 'doubao', breed: '柯基幼犬', age: '3 个月', sex: '公', neutered: false, size: 'S', temper: ['精力旺盛'], slots: ['周末上午'], geohash: encodeGeohash(30.273, 120.156), vaccine: 'none', inHeat: false, likesYou: true },
-      { id: 'c_afu', name: '阿福', owner: '阿福家', look: 'kele', breed: '柴犬', age: '5 岁', sex: '公', neutered: true, size: 'M', temper: ['温柔'], slots: ['周末上午'], geohash: encodeGeohash(30.35, 120.25), vaccine: 'proof', inHeat: false, likesYou: true },
+    walkEvents: [
+      { id: 'we_1', host: '布丁妈', when: '周六 9:00', slot: '周末上午', place: '滨河公园东门草坪', geohash: encodeGeohash(30.27, 120.15), sizes: ['S', 'M'], vibe: '新手友好', capacity: 6,
+        dogs: [{ name: '布丁', look: 'doubao', size: 'M' }, { name: '可乐', look: 'kele', size: 'M' }], joined: true, status: 'open' },
+      { id: 'we_2', host: '馒头爸', when: '今晚 20:00', slot: '工作日晚上', place: '滨河公园东门草坪', geohash: encodeGeohash(30.276, 120.149), sizes: ['S', 'M'], vibe: '安静慢遛', capacity: 5,
+        dogs: [{ name: '馒头', look: 'doubao', size: 'M' }, { name: '豆豆', look: 'doubao', size: 'S' }], joined: false, status: 'open' },
+      { id: 'we_3', host: '可乐妈', when: '今晚 19:30', slot: '工作日晚上', place: '城西公园宠物区', geohash: encodeGeohash(30.279, 120.16), sizes: ['S', 'M', 'L'], vibe: '大狗撒欢', capacity: 8,
+        dogs: [{ name: '可乐', look: 'kele', size: 'M' }, { name: '阿黄', look: 'kele', size: 'L' }, { name: '栗子', look: 'kele', size: 'M' }], joined: false, status: 'open' },
+      { id: 'we_4', host: '年年妈', when: '明早 7:30', slot: '工作日早上', place: '望江街区口袋公园', geohash: encodeGeohash(30.273, 120.156), sizes: ['S'], vibe: '幼犬社交', capacity: 4,
+        dogs: [{ name: '年年', look: 'doubao', size: 'S' }], joined: false, status: 'open' },
+      { id: 'we_5', host: '阿福家', when: '周日 16:00', slot: '周末下午', place: '远郊湿地公园', geohash: encodeGeohash(30.35, 120.25), sizes: ['S', 'M', 'L'], vibe: '新手友好', capacity: 6,
+        dogs: [{ name: '阿福', look: 'kele', size: 'M' }], joined: false, status: 'open' },
     ],
-    skipped: [], sniffed: ['c_buding'], blocked: [], friends: ['c_buding'],
-    appointments: [{ id: 'ap_1', candidateId: 'c_buding', petId: 'p_doubao', slot: '周六 9:00', place: '滨河公园东门草坪', status: 'scheduled' }],
+    hiddenHosts: [], friends: ['布丁妈'],
     fosters: [],
     homes: [
       { id: 'h_keke', owner: '可可妈', petName: '可可', look: 'zhima', friend: false },

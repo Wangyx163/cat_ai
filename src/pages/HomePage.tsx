@@ -6,8 +6,9 @@ import { Icon } from '../components/icons';
 import { Scene } from '../components/Scene';
 import { Avatar, Btn, Card, Empty, FishPill, IconBtn, WeatherBadge } from '../components/ui';
 import { WeighSheet } from '../components/WeighSheet';
+import { shieldInfo } from '../domain/shield';
 import type { Plan } from '../domain/types';
-import { deriveTasks, findPet, petWeather, type PetWeather, type Task } from '../store/selectors';
+import { deriveTasks, findPet, leadOf, petWeather, type PetWeather, type Task } from '../store/selectors';
 import { useStore } from '../store/StoreContext';
 
 export default function HomePage() {
@@ -50,7 +51,17 @@ export default function HomePage() {
   return (
     <div className="page">
       {head}
-      <Scene pets={state.pets} weathers={weathers} />
+      <Scene pets={state.pets} weathers={weathers} status={(() => {
+        const wt = tasks.find((t) => t.action === 'weigh');
+        const ct = tasks.find((t) => t.action === 'complete');
+        const plan = ct ? state.plans.find((p) => p.id === ct.planId) : undefined;
+        const si = plan ? shieldInfo(plan, today, leadOf(state)) : undefined;
+        return {
+          weigh: wt ? findPet(state, wt.petId)?.name : undefined,
+          shield: plan && si ? { label: `${findPet(state, plan.petId)?.name ?? ''}的${plan.title}`, days: si.daysLeft ?? 0, over: si.state === 'over' } : undefined,
+          plan: tasks.some((t) => t.action === 'plan'),
+        };
+      })()} />
       {sick.map((p) => {
         const w = weathers[p.id];
         return (

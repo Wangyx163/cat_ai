@@ -24,7 +24,9 @@ describe('家', () => {
     expect(screen.getByText('今天的每日一问')).toBeInTheDocument();
     expect(screen.getByText('豆包 · 体外驱虫')).toBeInTheDocument();
     expect(screen.getByText('今天该称啦')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '体重秤：去称重' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '体重秤：芝麻该称体重了' })).toBeInTheDocument();
+    expect(screen.getByText('该称啦')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '医药箱：豆包的体外驱虫还剩 2 天' })).toHaveTextContent('剩 2 天');
   });
 
   it('每日一问：一键都挺好，只给芝麻记例外，提交后 +1 且入口消失', async () => {
@@ -36,6 +38,7 @@ describe('家', () => {
     await user.click(within(row).getByRole('button', { name: '有点不对' }));
     expect(within(dialog).getByRole('button', { name: '记好了' })).toBeDisabled();
     await user.click(within(row).getByRole('button', { name: '少吃' }));
+    await user.click(within(row).getByRole('button', { name: '便便偏软' }));
     expect(within(row).getByText('小雨')).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: '记好了' }));
     expect(screen.getByRole('status')).toHaveTextContent('谢谢告诉我，小鱼干 +1');
@@ -126,20 +129,35 @@ describe('成长与分享', () => {
 });
 
 describe('圈子', () => {
-  it('约遛：跳过不回应的、和可乐匹配、邀约、见面打卡、评价成为宠友', async () => {
+  it('遛狗局：找局 → 加入 → 到场打卡 → 评价成为宠友；组局后出现在即将参加', async () => {
     const user = renderAt('/circle/walk');
-    expect(screen.getByRole('heading', { name: '馒头' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '嗅一嗅' }));
-    expect(screen.getByRole('status')).toHaveTextContent('已嗅一嗅，等馒头回应');
-    expect(screen.getByRole('heading', { name: '可乐' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '嗅一嗅' }));
-    const dialog = screen.getByRole('dialog', { name: '和可乐匹配成功' });
-    await user.click(within(dialog).getByRole('button', { name: '发出邀约' }));
-    const appt = card(screen.getByText(/和可乐（可乐妈）/));
-    await user.click(within(appt).getByRole('button', { name: '见面打卡' }));
-    await user.click(within(appt).getByRole('button', { name: '超合拍' }));
-    expect(within(appt).getByText('已成为宠友')).toBeInTheDocument();
-    expect(screen.getByText('附近暂时没有合适的狗狗')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '找局' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('附近有 2 个适合豆包的局')).toBeInTheDocument();
+    const ev = card(screen.getByText('馒头爸发起', { exact: false }));
+    expect(within(ev).getByText('匹配 100%')).toBeInTheDocument();
+    await user.click(within(ev).getByRole('button', { name: '加入' }));
+    expect(screen.getByRole('status')).toHaveTextContent('已加入「今晚 20:00」的局');
+    const joined = card(screen.getByText('馒头爸发起', { exact: false }));
+    await user.click(within(joined).getByRole('button', { name: '到场打卡' }));
+    await user.click(within(joined).getByRole('button', { name: '玩得开心' }));
+    expect(within(joined).getByText('馒头爸已成为宠友')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: '组局' }));
+    await user.click(screen.getByRole('button', { name: '大狗撒欢' }));
+    await user.click(screen.getByRole('button', { name: '发起遛狗局' }));
+    expect(screen.getByRole('status')).toHaveTextContent('遛狗局已发起');
+    expect(screen.getByText('我发起的', { exact: false })).toBeInTheDocument();
+  });
+
+  it('圈子默认进入推荐，Tab 里没有内部术语，同好可按圈筛选', async () => {
+    const user = renderAt('/circle');
+    expect(screen.getByRole('tab', { name: '推荐' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['推荐', '附近', '宠友', '同好']);
+    expect(screen.getByRole('link', { name: '遛狗局' })).toHaveAttribute('href', '/circle/walk');
+    expect(screen.getByText('窗台是它的专属晒太阳位，一睡一下午')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: '同好' }));
+    await user.click(screen.getByRole('button', { name: '新手幼猫圈' }));
+    expect(screen.getByText('第一次带猫打疫苗，要准备什么？')).toBeInTheDocument();
+    expect(screen.queryByText('窗台是它的专属晒太阳位，一睡一下午')).not.toBeInTheDocument();
   });
 
   it('走失互助：我看到了 → 线索发给失主 +5', async () => {
