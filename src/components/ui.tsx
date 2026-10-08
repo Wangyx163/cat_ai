@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { Look, Weather } from '../domain/types';
 import { WEATHER_NAME } from '../domain/weather';
 import { useStore } from '../store/StoreContext';
-import { asset, avatarSrc } from './assets';
+import { asset, avatarSrc, KIND_ICON } from './assets';
 import { Icon, type IconName } from './icons';
 
 type Kind = 'primary' | 'secondary' | 'text' | 'danger';
@@ -51,10 +51,16 @@ export function Avatar({ look, size = 40, tone = 'sky', alt = '' }: { look: Look
 
 export function WeatherBadge({ w, size = 28 }: { w: Weather; size?: number }) {
   return (
-    <span className={`wbadge wbadge--${w}`} style={{ width: size, height: size }} role="img" aria-label={`今日天气：${WEATHER_NAME[w]}`}>
-      <Icon name={w} size={Math.round(size * 0.62)} />
+    <span className={`wbadge wbadge--${w}`} style={{ width: size, height: size }}>
+      <img src={asset(`weather_${w}`)} alt={`今日天气：${WEATHER_NAME[w]}`} />
     </span>
   );
+}
+
+/** 养护项目图标：有插画的用插画，没有的回退到线性图标 */
+export function KindIcon({ kind, fallback, size = 26 }: { kind: string; fallback: IconName; size?: number }) {
+  const key = KIND_ICON[kind];
+  return key ? <img className="kind-icon" src={asset(key)} alt="" style={{ width: size, height: size }} /> : <Icon name={fallback} size={22} />;
 }
 
 export function FishPill({ n }: { n: number }) {

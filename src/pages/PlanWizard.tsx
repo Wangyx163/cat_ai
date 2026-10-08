@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/icons';
-import { Avatar, Btn, Card, Chip, Progress, Tag, TopBar } from '../components/ui';
+import { Avatar, Btn, Card, Chip, KindIcon, Progress, Tag, TopBar } from '../components/ui';
 import { ageText, fmtMD, fmtYM } from '../domain/dates';
 import { buildPlans, LAST_BUCKETS, STAGE_NAME, stageOf, templateFor, type PlanPick } from '../domain/planTemplate';
 import { shieldInfo } from '../domain/shield';
@@ -101,7 +101,7 @@ export default function PlanWizard() {
           <div className="grid2">
             {items.map((i) => (
               <button key={i.kind} type="button" aria-pressed={!!on[i.kind]} className={`plan-item${on[i.kind] ? ' plan-item--on' : ''}`} onClick={() => setOn({ ...on, [i.kind]: !on[i.kind] })}>
-                <Icon name={i.icon} /><span className="grow"><b>{i.title}</b><small>{i.period}</small></span>
+                <KindIcon kind={i.kind} fallback={i.icon} /><span className="grow"><b>{i.title}</b><small>{i.period}</small></span>
                 <span className="plan-item__check">{on[i.kind] && <Icon name="check" size={14} stroke={2.8} />}</span>
               </button>
             ))}
@@ -114,7 +114,7 @@ export default function PlanWizard() {
           <h2 className="h2">上次是什么时候？</h2>
           {picked.filter((i) => i.askLast || i.products).map((i) => (
             <Card line key={i.kind}>
-              <div className="row"><Icon name={i.icon} /><b>{i.title}</b></div>
+              <div className="row"><KindIcon kind={i.kind} fallback={i.icon} /><b>{i.title}</b></div>
               {i.askLast && (
                 <div className="row row--wrap">
                   {existing(i.kind)?.lastDone && <Chip on={last[i.kind] === KEEP} onClick={() => setLast({ ...last, [i.kind]: KEEP })}>沿用记录（{fmtMD(existing(i.kind)!.lastDone!)}）</Chip>}

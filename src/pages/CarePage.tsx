@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { asset, petImage, RATIO } from '../components/assets';
+import { asset, KIND_ICON, petImage, RATIO } from '../components/assets';
 import { CompleteSheet } from '../components/CompleteSheet';
 import { Icon } from '../components/icons';
 import { Sparkline } from '../components/Sparkline';
@@ -24,7 +24,7 @@ function ShieldTile({ kind, plan, petId, today, onDo, primary }: { kind: PlanKin
   const [label, tone] = STATE_TAG[info.state];
   return (
     <div className={`shield shield--${info.state}`}>
-      <div className="row"><span className={`shield__icon shield__icon--${info.state}`}><Icon name="shield" size={18} /></span><b className="grow">{SHIELD_TITLE[kind]}</b></div>
+      <div className="row"><span className="shield__icon"><img src={asset(KIND_ICON[kind])} alt="" /></span><b className="grow">{SHIELD_TITLE[kind]}</b></div>
       <Tag tone={tone}>{plan ? label : '未设置'}</Tag>
       {info.state === 'safe' && <><div className="shield__main">下次 {dueText(info.due!, today)}</div><small className="muted">{periodText(plan!.intervalDays)}</small>
         <Btn size="sm" kind="text" onClick={() => onDo(plan!)}>提前记录</Btn></>}

@@ -38,7 +38,7 @@ const P: Record<string, string> = {
 };
 export type IconName = keyof typeof P | string;
 
-export function Icon({ name, size = 22, stroke = 2, color = 'currentColor' }: { name: IconName; size?: number; stroke?: number; color?: string }) {
+export function Icon({ name, size = 22, stroke = 2.4, color = 'currentColor' }: { name: IconName; size?: number; stroke?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="icon"
       style={{ fill: 'none', stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round', flex: 'none' }}

@@ -321,3 +321,18 @@ textarea { resize: vertical; }
 
 /* ===== 宠物详情的状态摘要卡 ===== */
 .status-card { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 18px; background: var(--white); box-shadow: var(--shadow); color: var(--ink); text-decoration: none; font-size: 14px; }
+
+/* ===== 插画图标：底栏选中为彩色、未选中变灰；晴雨计、护盾、快捷面板 ===== */
+.tabbar__img { max-width: 30px; max-height: 28px; width: auto; height: auto; filter: grayscale(1); opacity: .45; transition: filter .2s, opacity .2s, transform .2s; }
+.tabbar__img--wide { max-width: 40px; max-height: 26px; }
+.tabbar__item--on .tabbar__icon { background: transparent; }
+.tabbar__item--on .tabbar__img { filter: none; opacity: 1; transform: translateY(-1px) scale(1.06); }
+.tabbar__plus { width: 60px; height: 60px; margin-top: -24px; padding: 0; border: none; background: transparent; box-shadow: none; filter: drop-shadow(0 4px 8px rgba(8, 44, 92, .18)); }
+.tabbar__plus img { width: 60px; height: 60px; }
+.wbadge--sun, .wbadge--cloud, .wbadge--rain, .wbadge--alert { background: transparent; }
+.wbadge img { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+.shield__icon, .shield__icon--safe, .shield__icon--soon, .shield__icon--over { width: 36px; height: 36px; background: transparent; }
+.shield__icon img { max-width: 34px; max-height: 34px; width: auto; height: auto; }
+.kind-icon { object-fit: contain; flex: none; }
+.quick-item__pic { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; }
+.quick-item__pic img { max-width: 40px; max-height: 38px; width: auto; height: auto; }

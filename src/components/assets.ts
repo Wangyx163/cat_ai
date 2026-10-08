@@ -13,6 +13,10 @@ export const RATIO: Record<string, number> = {
   empty_nearby: 640 / 475, empty_timeline: 502 / 640, scene_room: 1448 / 1086,
   entry_walk: 360 / 215, entry_visit: 360 / 303, entry_lost: 358 / 360, entry_foster: 360 / 274,
   feed_cat_window: 600 / 800, walk_party: 1200 / 675,
+  tab_home: 256 / 235, tab_care: 256 / 235, tab_plus: 255 / 256, tab_circle: 256 / 138, tab_me: 253 / 256,
+  quick_check: 256 / 245, quick_moment: 256 / 204, quick_post: 256 / 231,
+  shield_in: 251 / 256, shield_out: 256 / 253, shield_core: 256 / 234, shield_rabies: 256 / 236,
+  weather_sun: 256 / 255, weather_cloud: 256 / 212, weather_rain: 256 / 251, weather_alert: 256 / 217,
 };
 
 export function petImage(look: Look, pose: Pose) {
@@ -20,6 +24,11 @@ export function petImage(look: Look, pose: Pose) {
   return { key, src: asset(key), ratio: RATIO[key] };
 }
 export const avatarSrc = (look: Look) => asset(`avatar_${look}`);
+
+/** 养护项目对应的插画图标（没有的项目继续用线性图标） */
+export const KIND_ICON: Record<string, string> = {
+  deworm_in: 'shield_in', deworm_out: 'shield_out', vaccine_core: 'shield_core', vaccine_rabies: 'shield_rabies', weigh: 'obj_scale', checkup: 'obj_calendar',
+};
 
 /** 形象库：先提供四种常见形象，后续再做参数化自定义 */
 export const LOOKS: Record<Look, { species: Species; breed: string; label: string }> = {
